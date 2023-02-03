@@ -6,7 +6,7 @@
         <template slot="after">
           <el-button size="small" type="success" @click="$router.push('/import?type=user')">excel导入</el-button>
           <el-button size="small" type="danger" @click="exportData">excel导出</el-button>
-          <el-button size="small" type="primary" @click="showDialog = true">新增员工</el-button>
+          <el-button :disabled="!checkPermission('POINT-USER-ADD')" size="small" type="primary" @click="showDialog = true">新增员工</el-button>
         </template>
       </page-tools>
       <!-- 放置表格和分页 -->
@@ -14,6 +14,18 @@
         <el-table v-loading="loading" :data="list" border>
           <el-table-column type="index" label="序号" sortable="" />
           <el-table-column label="姓名" prop="username" sortable="" />
+          <el-table-column label="头像" align="center">
+            <template slot-scope="{row}">
+              <img
+                slot="reference"
+                v-imageerror="require('@/assets/common/bigUserHeader.png')"
+                :src="row.staffPhoto "
+                style="border-radius: 50%; width: 100px; height: 100px; padding: 10px"
+                alt=""
+                @click="showQrCode(row.staffPhoto)"
+              >
+            </template>
+          </el-table-column>
           <el-table-column label="工号" prop="workNumber" sortable="" />
           <el-table-column label="聘用形式" prop="formOfEmployment" sortable="" :formatter="formatEmployment" />
           <el-table-column label="部门" prop="departmentName" sortable="" />
@@ -31,11 +43,11 @@
           </el-table-column>
           <el-table-column label="操作" sortable="" fixed="right" width="280">
             <template slot-scope="{ row }">
-              <el-button type="text" size="small">查看</el-button>
+              <el-button type="text" size="small" @click="$router.push(`/employees/detail/${row.id}`)">查看</el-button>
               <el-button type="text" size="small">转正</el-button>
               <el-button type="text" size="small">调岗</el-button>
               <el-button type="text" size="small">离职</el-button>
-              <el-button type="text" size="small">角色</el-button>
+              <el-button type="text" size="small" @click="editRole(row.id)">角色</el-button>
               <el-button type="text" size="small" @click="delEmployee(row.id)">删除</el-button>
             </template>
           </el-table-column>
@@ -54,6 +66,13 @@
     </div>
     <!-- 放置组件弹层 -->
     <add-employee :show-dialog.sync="showDialog" />
+    <el-dialog title="二维码" :visible.sync="showCodeDialog" @opened="showQrCode" @close="imgUrl=''">
+      <el-row type="flex" justify="center">
+        <canvas ref="myCanvas" />
+      </el-row>
+    </el-dialog>
+    <!-- 放置分配组件 -->
+    <assign-role ref="assignRole" :show-role-dialog.sync="showRoleDialog" :user-id="userId" />
   </div>
 </template>
 
@@ -62,8 +81,10 @@ import { getEmployeeList, delEmployee } from '@/api/employees'
 import EmployeeEnum from '@/api/constant/employees'
 import AddEmployee from './components/add-employee'
 import { formatDate } from '@/filters'
+import AssignRole from './components/assign-role'
+import QrCode from 'qrcode'
 export default {
-  components: { AddEmployee },
+  components: { AddEmployee, AssignRole },
   data() {
     return {
       list: [], // 接数据的
@@ -73,7 +94,10 @@ export default {
         total: 0 // 总数
       },
       loading: false, // 显示遮罩层
-      showDialog: false // 默认关闭弹层
+      showDialog: false, // 默认关闭弹层
+      showCodeDialog: false, // 显示二维码弹层
+      showRoleDialog: false, // 显示分配角色弹层
+      userId: null
     }
   },
   created() {
@@ -162,6 +186,23 @@ export default {
       })
       // return rows.map(item => Object.keys(headers).map(key => item[headers[key]]))
       // 需要处理时间格式问题
+    },
+    showQrCode(url) {
+      // url存在的情况下 才弹出层
+      if (url) {
+        this.showCodeDialog = true // 数据更新了 弹层不会立刻出现,页面的渲染是异步的！
+        // 有一个方法可以在上一次数据更新完毕，页面渲染完毕之后
+        this.$nextTick(() => {
+          // 此时可以确认已经有ref对象了
+          QrCode.toCanvas(this.$refs.myCanvas, url) // 将地址转化成二维码
+          // 如果转化的二维码后面信息 是一个地址的话 就会跳转到该地址 如果不是地址就会显示内容
+        })
+      }
+    },
+    async editRole(id) {
+      this.userId = id
+      await this.$refs.assignRole.getUserDetailById(id) // 调用子组件方法 异步方法
+      this.showRoleDialog = true
     }
   }
 }

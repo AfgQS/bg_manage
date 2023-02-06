@@ -118,6 +118,8 @@ export default {
             // async标记的函数实际上一个promise对象
             // await下面的代码 都是成功执行的代码
             this.$router.push('/')
+            // this.$router.go()
+            window.location.reload() // 两种方法都可以让页面刷新一次
           } catch (error) {
             console.log(error)
           } finally {

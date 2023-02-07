@@ -59,7 +59,7 @@ export const constantRoutes = [
     redirect: '/dashboard',
     children: [{
       path: 'dashboard',
-      name: 'Dashboard',
+      name: 'dashboard',
       component: () => import('@/views/dashboard/index'),
       meta: { title: '首页', icon: 'dashboard' }
     }]
@@ -90,9 +90,10 @@ export const asyncRoutes = [
 ]
 
 const createRouter = () => new Router({
-  // mode: 'history', // require service support
-  scrollBehavior: () => ({ y: 0 }), // 管理滚动行为 如果出现滚动 切换就让 让页面回到顶部
-  routes: [...constantRoutes] // 临时合并所有的路由 更改成只有静态路由
+  mode: 'history', // require service support
+  base: '/hr/', // 配置项目的基础地址
+  scrollBehavior: () => ({ y: 0 }), // 管理滚动行为 如果出现滚动 切换就让页面回到顶部
+  routes: [...constantRoutes] // 改成只有静态路由
 })
 
 const router = createRouter()
